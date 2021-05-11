@@ -20,16 +20,16 @@
 //   BOTH the lecturer/course combination and the course as a whole.
 
 // === Domain model - fill in the blanks ===
-// There are 4 models: _____, _____, _____, _____
-// There is one many-to-many relationship: _____ <-> _____, which translates to two one-to-many relationships:
-// - One-to-many: _____ -> _____
-// - One-to-many: _____ -> _____
-// And one more one-to-many: _____ -> _____
+// There are 4 models: Courses, Professor, Reviews, Sections
+// There is one many-to-many relationship: Courses <-> Professor, which translates to two one-to-many relationships:
+// - One-to-many: Professor -> Sections
+// - One-to-many: Course -> Sections
+// And one more one-to-many: Professor -> Reviews
 // Therefore:
-// - The first model, _____, contains the following fields (not including ID): _____, _____ 
-// - The second model, _____, contains the following fields: _____
-// - The third model, _____, contains the following fields: _____, _____
-// - The fourth model, _____, contains the following fields, _____, _____, _____
+// - The first model, Courses, contains the following fields (not including ID): course name
+// - The second model, Professors, contains the following fields: Professor First Name, Professor Last Name
+// - The third model, Reviews, contains the following fields: Review Comments, Review Rating,  Section ID
+// - The fourth model, Section, contains the following fields: course ID, Professor ID 
 
 // allows us to use firebase
 let firebase = require(`./firebase`)
@@ -37,17 +37,75 @@ let firebase = require(`./firebase`)
 // /.netlify/functions/courses?courseNumber=KIEI-451
 exports.handler = async function(event) {
 
-  // get the course number being requested
-
+let returnValue = []
   // establish a connection to firebase in memory
+let db = firebase.firestore()
+  // perform a query against firestore for all posts, wait for it to return, store in memory
+let coursesQuery = await db.collection(`courses`).get()
 
-  // ask Firebase for the course that corresponds to the course number, wait for the response
+// get the first document from the query
 
-  // get the first document from the query
+let courses = coursesQuery.docs
 
-  // get the id from the document
+  // loop to get the course number being requested
+  for (let courseIndex=0; courseIndex < courses.length; courseIndex++) {
+    // get the id from the document
+    let courseId = courses[courseIndex].id
 
-  // get the data from the document
+    // get the data from the document
+    let courseData = courses[courseIndex].data()
+
+    // create an Object to be added to the return value of our lambda
+    let courseObject = {
+      id: courseId,
+      courseName: courseData.courseName,
+      courseNumber: courseData.courseNumber,
+      sectionDetails: []
+    } 
+
+// get the sections for this course, wait for it to return, store in memory
+let sectionsQuery = await db.collection(`sections`).where(`courseId`,`==`, courseId).get()
+// get the documents from the query
+let sections = sectionsQuery.docs
+  for(let sectionIndex =0; sectionIndex < sections.length; sectionIndex++) {
+    // get the id from the comment document
+    let sectionId = sections[sectionIndex].id
+    // get the data from the comment document
+    let sectionData = sections[sectionIndex].data()
+    // create an Object to be added to the comments Array of the post
+    let sectionObject = {
+      id: sectionId,
+      courseId: sectionData.courseId,
+      professorId: sectionData.professorId,
+      professorDetails: []
+    }
+// get the professorss for this section, wait for it to return, store in memory
+let professorsQuery = await db.collection(`professors`).get()
+// get the documents from the query
+let professors = professorsQuery.docs
+  for(let professorIndex =0; professorIndex < professors.length; professorIndex++) {
+    // get the id from the comment document
+    let professorId = professors[professorIndex].id
+    // get the data from the comment document
+    let professorData = professors[professorIndex].data()
+    // create an Object to be added to the comments Array of the post
+    let professorObject = {
+      id: professorId,
+      professorFirstName: professorData.professorFirstName,
+      professorLastName: professorData.professorLastName
+    }
+ // add the professor Object to the section
+     sectionObject.professorDetails.push(professorObject)
+  }
+
+    // add the section Object to the course
+    courseObject.sectionDetails.push(sectionObject)
+
+}
+  // add the Object to the return value
+    returnValue.push(courseObject)
+  }
+
 
   // set a new Array as part of the return value
 
@@ -67,6 +125,6 @@ exports.handler = async function(event) {
   // return the standard response
   return {
     statusCode: 200,
-    body: `Hello from the back-end!`
+    body: JSON.stringify(returnValue)
   }
 }

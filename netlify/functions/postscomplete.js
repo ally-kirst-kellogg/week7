@@ -21,14 +21,16 @@ let firebase = require(`./firebase`)
 // /.netlify/functions/posts
 exports.handler = async function(event) {
   // define an empty Array to hold the return value from our lambda
-let returnValue = []
+  let returnValue = []
+
   // establish a connection to firebase in memory
-let db = firebase.firestore()
+  let db = firebase.firestore()
+
   // perform a query against firestore for all posts, wait for it to return, store in memory
-let postsQuery = await db.collection(`posts`).get()
+  let postsQuery = await db.collection(`posts`).get()
 
   // retrieve the documents from the query
-let posts = postsQuery.docs
+  let posts = postsQuery.docs
 
   // loop through the post documents
   for (let postIndex=0; postIndex < posts.length; postIndex++) {
@@ -42,32 +44,38 @@ let posts = postsQuery.docs
     let postObject = {
       id: postId,
       imageUrl: postData.imageUrl,
-      numberOflikes: postData.numberOflikes,
+      numberOfLikes: postData.numberOfLikes,
       comments: []
-    } 
+    }
+
     // get the comments for this post, wait for it to return, store in memory
-    let commentsQuery = await db.collection(`comments`).where(`postId`,`==`, postId).get()
+    let commentsQuery = await db.collection(`comments`).where(`postId`, `==`, postId).get()
+
     // get the documents from the query
     let comments = commentsQuery.docs
-    
-    // loop through the comment documents
 
-  for(let commentIndex =0; commentIndex < comments.length; commentIndex++) {
+    // loop through the comment documents
+    for (let commentIndex=0; commentIndex < comments.length; commentIndex++) {
       // get the id from the comment document
       let commentId = comments[commentIndex].id
+
       // get the data from the comment document
       let commentData = comments[commentIndex].data()
+
       // create an Object to be added to the comments Array of the post
       let commentObject = {
         id: commentId,
         body: commentData.body
       }
+
       // add the Object to the post
       postObject.comments.push(commentObject)
-  }
+    }
+
     // add the Object to the return value
     returnValue.push(postObject)
   }
+
   // return value of our lambda
   return {
     statusCode: 200,
